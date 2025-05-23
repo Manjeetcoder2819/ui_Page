@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Scroll Transition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Import Inter font for a modern look */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden; /* Prevent horizontal scroll during transitions */
+            margin: 0;
+            padding: 0;
+            background-color: #000; /* Black background for better contrast */
+            color: #ccc; /* Default text color for new sections */
+        }
+
+        /* Generic styling for new content sections */
+        .content-section {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            text-align: center;
+            padding: 20px;
+            border-radius: 0.75rem; /* Rounded corners */
+            background-color: #1a1a1a; /* Dark background */
+            margin-bottom: 2rem; /* Spacing between sections */
+        }
+
+        /* Specific styling for the very top section to remove bottom margin if needed */
+        .top-section-1 {
+            margin-top: 0;
+        }
+
+        /* Wrapper to provide scrollable height for the animation */
+        .scroll-wrapper {
+            /* Height will be dynamically set by JavaScript to control animation duration */
+            position: relative;
+        }
+
+        /* The initial hero section, which is sticky at the top */
+        .hero-section {
+            position: sticky;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden; /* Ensures video stays within bounds */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Initial z-index to be on top */
+            z-index: 10;
+            /* Transitions for smooth movement and fade */
+            transition: transform 0.1s linear, opacity 0.1s linear;
+        }
+
+        /* Styling for the background video */
+        .background-video {
+            position: absolute;
+            /* Center the video element itself */
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%); /* Initial centering */
+            width: 100%;
+            height: 100%;
+            /* object-fit will be controlled by JS during animation */
+            transform-origin: center center; /* Ensures scaling is from the center */
+            z-index: 5; /* Layering: below text, above nothing */
+            /* No CSS transitions here, as JS will handle direct style manipulation for smooth animation */
+        }
+
+        /* Styling for the text overlay */
+        .text-overlay {
+            position: absolute;
+            z-index: 10; /* Layering: above video */
+            color: white;
+            text-align: center;
+            padding: 20px;
+            opacity: 1; /* Initially fully visible */
+            /* No CSS transitions here, as JS will handle direct style manipulation for smooth animation */
+        }
+
+        .text-overlay h1 {
+            font-size: 3.5rem; /* Large font for impact */
+            font-weight: 700;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem; /* Rounded corners for text background */
+            padding: 0.5rem;
+        }
+
+        .text-overlay p {
+            font-size: 1.8rem;
+            font-weight: 400;
+            border-radius: 0.5rem; /* Rounded corners for text background */
+            padding: 0.5rem;
+        }
+
+        /* Styling for the iPhone frame overlay */
+        .iphone-frame-overlay {
+            position: absolute;
+            z-index: 15; /* Layering: above video and text (as text fades out) */
+            opacity: 0; /* Initially hidden */
+            /* No CSS transitions here, as JS will handle direct style manipulation for smooth animation */
+            background-size: contain; /* Ensures the SVG fits within the div */
+            background-repeat: no-repeat;
+            background-position: center;
+            /* Embedded SVG for a generic iPhone-like frame with a transparent cutout.
+               This SVG creates a black rounded rectangle with a transparent inner part.
+               Updated to be horizontally oriented for a landscape phone, with a 16:9 inner cutout. */
+            background-image: url("data:image/svg+xml,%3Csvg width='812' height='470' viewBox='0 0 812 470' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cmask id='cutout'%3E%3Crect x='0' y='0' width='812' height='470' rx='50' ry='50' fill='white'/%3E%3Crect x='15' y='15' width='782' height='440' rx='40' ry='40' fill='black'/%3E%3C/mask%3E%3C/defs%3E%3Crect x='0' y='0' width='812' height='470' rx='50' ry='50' fill='black' mask='url(%23cutout)'/%3E%3C/svg%3E");
+        }
+
+        /* Styling for the second image section */
+        .second-image-section {
+            position: sticky; /* Sticky to appear in the viewport */
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000; /* Match body background */
+            opacity: 0; /* Initially hidden */
+            z-index: 1; /* Initially behind hero-section */
+            overflow: hidden;
+            transition: opacity 0.1s linear; /* Smooth fade-in */
+        }
+
+        .second-image-section img {
+            max-width: 80%; /* Adjust size as needed */
+            max-height: 80%; /* Adjust size as needed */
+            object-fit: contain;
+            border-radius: 0.75rem; /* Rounded corners for the image */
+        }
+
+        /* Placeholder for content below the hero section to enable scrolling */
+        .content-below {
+            height: 100vh; /* Example content height */
+            background-color: #1a1a1a; /* Dark background for continuity */
+            color: #ccc;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            text-align: center;
+            padding: 20px;
+            border-radius: 0.75rem; /* Rounded corners */
+        }
+
+        /* Responsive adjustments for text size on smaller screens */
+        @media (max-width: 768px) {
+            .text-overlay h1 {
+                font-size: 2.5rem;
+            }
+            .text-overlay p {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="content-section top-section-1">
+        <h2 class="text-white text-4xl font-bold">Welcome to Our Experience!</h2>
+        <p class="text-white text-xl mt-4">Scroll down to see the magic unfold.</p>
+    </div>
+
+    <div class="content-section top-section-2">
+        <h2 class="text-white text-4xl font-bold">Discover Amazing Features</h2>
+        <p class="text-white text-xl mt-4">Each scroll reveals something new.</p>
+    </div>
+
+    <div class="scroll-wrapper">
+        <div class="hero-section">
+            <video id="mainVideo" autoplay loop muted playsinline class="background-video">
+                <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+
+            <div class="text-overlay">
+                <h1 class="text-white text-5xl md:text-7xl font-bold rounded-lg p-2">All-day battery life</h1>
+                <p class="text-white text-2xl md:text-3xl mt-4 rounded-lg p-2">From dusk till dawn. And beyond.</p>
+            </div>
+
+            <div id="iphoneFrameOverlay" class="iphone-frame-overlay"></div>
+        </div>
+
+        <div id="secondImageSection" class="second-image-section">
+           
+        </div>
+
+    <div class="content-section bottom-section-1">
+        <h2 class="text-white text-4xl font-bold">Explore More Content</h2>
+        <p class="text-white text-xl mt-4">There's always something new to learn.</p>
+    </div>
+
+    <div class="content-section bottom-section-2">
+        <h2 class="text-white text-4xl font-bold">Thank You for Scrolling!</h2>
+        <p class="text-white text-xl mt-4">We hope you enjoyed the experience.</p>
+    </div>
+
+    <script>
+        // Get references to the DOM elements
+        const mainVideo = document.getElementById('mainVideo');
+        const textOverlay = document.querySelector('.text-overlay');
+        const heroSection = document.querySelector('.hero-section');
+        const iphoneFrameOverlay = document.getElementById('iphoneFrameOverlay');
+      
+        const scrollWrapper = document.querySelector('.scroll-wrapper');
+
+        // Define the duration of each animation phase in terms of scroll pixels
+        // Using window.innerHeight ensures each phase corresponds to one full viewport scroll
+        const phaseDuration = window.innerHeight;
+
+        // Define the start and end scroll positions for each phase
+        const phase1Start = 0;
+        const phase1End = phaseDuration; // Video to iPhone transition completes
+
+        const phase2Start = phaseDuration;
+        const phase2End = 2 * phaseDuration; // iPhone scrolls up and fades out
+
+      
+
+        // Set the total height of the scroll wrapper to accommodate all animation phases
+        // Plus an extra viewport height for the 'content-below' section to be fully visible
+        const setScrollWrapperHeight = () => {
+            // Total height = (3 phases of animation) + (1 viewport height for content-below)
+            // The additional 4 * window.innerHeight accounts for the two sections above and two sections below the scroll-wrapper
+            scrollWrapper.style.height = `${(phaseDuration * 3) + window.innerHeight}px`;
+        };
+
+        // Add a scroll event listener to the window
+        window.addEventListener('scroll', () => {
+            const scrollY = window.scrollY; // Current vertical scroll position
+
+            // Adjust scrollY for the new top sections
+            // The animation in scroll-wrapper effectively starts after the two top sections
+            const adjustedScrollY = scrollY - (2 * window.innerHeight); // Subtract height of two top sections
+
+            // --- Phase 1: Video to iPhone Transition ---
+            // Progress for phase 1 (0 to 1)
+            let progressPhase1 = Math.min(1, Math.max(0, (adjustedScrollY - phase1Start) / (phase1End - phase1Start)));
+
+            // Animate text overlay opacity: fades out completely by half of phase 1
+            textOverlay.style.opacity = 1 - Math.min(1, progressPhase1 * 2);
+
+            // Video scaling animation
+            const initialVideoScale = 1; // Video's initial scale (full size)
+            const finalVideoScale = 0.4; // Video's final scale (40% of original size)
+            // Interpolate the current scale based on scroll progress
+            const currentVideoScale = initialVideoScale - (progressPhase1 * (initialVideoScale - finalVideoScale));
+
+            // Apply the calculated transform to the video element, ensuring it remains centered
+            mainVideo.style.transform = `translate(-50%, -50%) scale(${currentVideoScale})`;
+
+            // Animate border-radius for the video content to create rounded corners
+            const finalBorderRadius = 50; // Max border radius for the video content
+            const currentBorderRadius = progressPhase1 * finalBorderRadius;
+            mainVideo.style.borderRadius = `${currentBorderRadius}px`;
+
+            // iPhone frame overlay animation
+            if (iphoneFrameOverlay) {
+                // Fade in the iPhone frame overlay as we scroll during phase 1
+                iphoneFrameOverlay.style.opacity = progressPhase1;
+
+                // Set video object-fit to 'contain' to ensure the entire video content is visible within the frame
+                mainVideo.style.objectFit = 'contain';
+
+                // Define the target aspect ratio for the video content (16:9, as seen in the image)
+                const targetContentAspectRatio = 16 / 9;
+
+                // Calculate the dimensions of the video content based on the current scale
+                // The video element's effective size is proportional to the viewport scaled by currentVideoScale.
+                const scaledElementWidth = window.innerWidth * currentVideoScale;
+                const scaledElementHeight = window.innerHeight * currentVideoScale;
+
+                let videoContentWidth, videoContentHeight;
+
+                // Calculate the actual dimensions of the video content *within* the scaled video element
+                // when object-fit is 'contain' and the target 16:9 aspect ratio is applied.
+                if (scaledElementWidth / scaledElementHeight > targetContentAspectRatio) {
+                    // Container is wider than 16:9, so height is the limiting factor
+                    videoContentHeight = scaledElementHeight;
+                    videoContentWidth = videoContentHeight * targetContentAspectRatio;
+                } else {
+                    // Container is taller than 16:9, so width is the limiting factor
+                    videoContentWidth = scaledElementWidth;
+                    videoContentHeight = videoContentWidth / targetContentAspectRatio;
+                }
+
+                // Now, the iPhone frame should wrap around these `videoContentWidth` and `videoContentHeight`.
+                const frameScaleFactor = 1.1; // Frame is 10% larger than the video
+                const frameWidth = videoContentWidth * frameScaleFactor;
+                const frameHeight = videoContentHeight * frameScaleFactor;
+
+                // Calculate frame position to be centered around the video
+                const frameX = (window.innerWidth / 2) - (frameWidth / 2);
+                const frameY = (window.innerHeight / 2) - (frameHeight / 2);
+
+                // Apply the calculated width, height, and position to the iPhone frame overlay
+                iphoneFrameOverlay.style.width = `${frameWidth}px`;
+                iphoneFrameOverlay.style.height = `${frameHeight}px`;
+                iphoneFrameOverlay.style.left = `${frameX}px`;
+                iphoneFrameOverlay.style.top = `${frameY}px`;
+            }
+
+            // --- Phase 2: iPhone Scrolls Up and Fades Out ---
+            // Progress for phase 2 (0 to 1)
+            let progressPhase2 = Math.min(1, Math.max(0, (adjustedScrollY - phase2Start) / (phase2End - phase2Start)));
+
+            // Move the hero section (containing video and iPhone) up and fade it out
+            heroSection.style.transform = `translateY(-${progressPhase2 * 100}vh)`;
+            heroSection.style.opacity = 1 - progressPhase2;
+
+            // --- Phase 3: Second Image Appears ---
+            // Progress for phase 3 (0 to 1)
+            let progressPhase3 = Math.min(1, Math.max(0, (adjustedScrollY - phase3Start) / (phase3End - phase3Start)));
+
+            // Fade in the second image section
+            secondImageSection.style.opacity = progressPhase3;
+
+            // Control z-index to ensure correct layering during transitions
+            if (adjustedScrollY < phase2End) {
+                // During Phase 1 and 2, hero section is on top
+                heroSection.style.zIndex = 10;
+                secondImageSection.style.zIndex = 1;
+            } else {
+                // After Phase 2, hero section moves behind/disappears, second image comes to front
+                heroSection.style.zIndex = 1;
+                secondImageSection.style.zIndex = 10;
+            }
+        });
+
+        // Ensure the video dimensions are available before calculating frame size
+        mainVideo.addEventListener('loadedmetadata', () => {
+            setScrollWrapperHeight(); // Set height after video metadata is loaded
+            window.dispatchEvent(new Event('scroll')); // Trigger initial scroll to set correct state
+        });
+
+        // Also handle window resize to keep elements centered and recalculate scroll height
+        window.addEventListener('resize', () => {
+            setScrollWrapperHeight(); // Recalculate height on resize
+            window.dispatchEvent(new Event('scroll')); // Trigger scroll to update positions
+        });
+
+        // Set initial scroll wrapper height on page load
+        setScrollWrapperHeight();
+        // Trigger initial scroll to ensure elements are in their correct starting positions
+        window.dispatchEvent(new Event('scroll'));
+    </script>
+</body>
+</html>
